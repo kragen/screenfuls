@@ -2,9 +2,10 @@ A trie is a set of sequences. We represent it by a structure containing:
 
 * a flag `has-nil?` telling whether the empty sequence is in the set, and
 * an `a-list` mapping each different `car` of all sequences in the set
-  to the trie for all the `cdr`s of the sequences with that `car`
-.
-Here's an example using a trie to find misspellings; that is, to find all words not in a dictionary:
+  to the trie for all the `cdr`s of the sequences with that `car`.
+
+Here's an example using a trie to find misspellings; that is, to find
+all words not in a dictionary:
 
     (define adjoin! (trie-method trie-adjoin! char=? list-walker))
     (define member? (trie-method trie-member? char=? list-walker))
