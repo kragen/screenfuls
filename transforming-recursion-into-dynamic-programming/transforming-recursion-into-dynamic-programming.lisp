@@ -1,5 +1,5 @@
 ;;; Transforming recursion into dynamic programming.
-;;; By Darius Bacon.  No license provided.
+;;; © 1994-2003 by Darius Bacon.  No license provided.
 
 (defmacro defun-recurrence (name params inits &body body)
   "Define a recursive function that's evaluated by dynamic programming,
