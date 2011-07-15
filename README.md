@@ -499,3 +499,8 @@ Neel Krishnaswami's [90-line compiler][] for the λ-calculus in OCaml:
 >       let codegen = (fun offsets -> codegen offsets @ ["halt\n"]) in
 >       let (offsets, closuregens) = compile_closures table start in
 >       codegen offsets @ (List.concat (List.map (fun f -> f offsets) closuregens))
+
+Some things from [the demo scene][] and size-coding compos?  Maybe
+some other graphics hacks?
+
+[the demo scene]: http://canonical.org/~kragen/demo/ "Also check out pouet.net, dude"
