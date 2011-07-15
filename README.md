@@ -394,108 +394,108 @@ Neel Krishnaswami's [90-line compiler][] for the λ-calculus in OCaml:
 
 [90-line compiler]: http://www.reddit.com/r/programming/comments/711ha/llvmbased_miniml_compiler_in_100_lines_of_ocaml/c05eyms
 
-Sure thing! Here's a compiler for the pure lambda calculus using a cbv evaluation strategy. It compiles to a triple-style pseudo-assembly, which you can easily change to your favorite actual assembly language. The registers I use are:
-
-* sp -- the stack pointer; points to the topmost occupied element of the stack. The stack grows upwards, so incrementing it yields a new slot.
-* hp -- the heap pointer; points to the next free pointer. Allocation consists of bumping the heap pointer. You aren't getting deallocation in 100 LOC. :-)
-* ep -- the environment register. Hold a pointer to the current environment for lexical variables.
-* ret -- the return pointer. Where the current function should return to.
-* work -- a scratch register
-* newenv -- where we store the environment of a function we're about to call
-* calltgt -- where we store the address of a function we're about to jump to
-
-The compiler is insanely junky, but hey, it's ninety lines of code. There are exactly two interesting things it does. First, it does closure conversion, and uses `expr` to represent regular asts and `cexpr` for closure converted expressions. Second, it uses a perhaps excessively-slick bit of higher order functional programming to do relocation and backpatching in a purely functional way. Basically, a relocatable piece of code is a function that takes in its start address, and returns a pair consisting of the length of the generated code, and another function which actually produces the code once you give it a table of offsets for the closure addresses.
-Some of the junky things I do is put too much code into the call sequence, rather than into the closure body. Another junky thing is that stack manipulation is incredibly lazy and naive; you could clean it up, shrink the generated code, and probably get rid of a couple of registers. Also, variable references are linear time, since I scan a linked list to find them.
-
-    type 'a exp =
-      | Var of string
-      | App of 'a exp * 'a exp
-      | Lam of string * 'a 
-
-    type expr = E of expr exp
-    type cexpr = C of int 
-
-    let rec lambda_lift e env table =
-      match e with
-      | Var v -> Var v, table
-      | App(e1, e2) ->
-          let e1', table = lambda_lift e1 env table in
-          let e2', table = lambda_lift e2 env table in
-          App(e1', e2'), table
-      | Lam(x, E ebody) ->
-          let ebody', table = lambda_lift ebody (x :: env) table in
-          Lam(x, C(List.length table)), (table @ [x :: env, ebody'])
-
-    let rec index x = function
-      | [] -> raise Not_found
-      | y :: ys -> if x = y then 0 else 1 + (index x ys)
-
-    let rec natfold n f init = if n = 0 then init else f (natfold (n-1) f init)
-
-    (* compile : (string list * cexpr) -> int -> int * (int list -> string list) *)
-
-    let rec compile' (env, e) start =  
-      match e with
-      | Var x ->
-          let n = index x env in
-          (n + 3,
-           (fun _ -> 
-              ["work := ep\n"] @
-              (natfold n (fun acc -> "work := [work] + 1\n" :: acc) []) @
-              ["sp := sp + 1\n";
-               "[sp] := [work]\n"]))
-      | Lam(x, C id) ->
-          (5,
-           fun locs ->
-             ["sp := sp + 1\n";
-              "[sp] := hp\n";
-              "hp := hp + 2\n";
-              Printf.sprintf "[sp] := %d\n" (List.nth locs id);
-              "[[sp] + 1] := ep\n"])
-      | App(e1, e2) ->
-          let len1, f1 = compile' (env, e1) start in
-          let len2, f2 = compile' (env, e2) (start + len1) in
-          (len1 + len2 + 21,
-           fun locs -> 
-             let code1 = f1 locs in
-             let code2 = f2 locs in
-             (code1 @ code2 @
-              ["work := hp\n";
-               "hp := hp + 2\n";
-               "[work] := [sp]\n";
-               "[[work] + 1] := ep\n";
-               "sp := sp - 1\n";
-               "newenv := [[sp]]\n";
-               "calltgt := [[sp] + 1]\n";
-               "sp := sp - 1\n";
-               "[sp] := ep\n";
-               "sp := sp + 1\n";
-               "[sp] := ret\n";
-               "sp := sp + 1\n";
-               "ep := newenv\n";
-               Printf.sprintf "ret := %d\n" (start + len1 + len2 + 16);
-               "jump calltgt\n";
-               "work := [sp]\n";
-               "sp := sp - 1\n";
-               "ret := [sp]\n";
-               "sp := sp - 1\n";
-               "ep := [sp]\n";
-               "sp := sp - 1\n"]))
-
-    let rec compile_closures table start =
-      match table with
-      | [] -> ([], [])
-      | pair :: tail ->
-          let (len, code) = compile pair start in
-          let code lst = code lst @ ["jump ret\n"] in
-          let len = len + 1 in
-          let (offsets, codes) = compile_closures tail (start + len) in
-          (start :: offsets, code :: codes)
-
-    let compile e env =
-      let ce, table = lambda_lift e env [] in
-      let (start, codegen) = compile' (env, ce) 0 in
-      let start = start + 1 in
-      let codegen = (fun offsets -> codegen offsets @ ["halt\n"]) in
-      let (offsets, closuregens) = compile_closures table start in
-      codegen offsets @ (List.concat (List.map (fun f -> f offsets) closuregens))
+> Sure thing! Here's a compiler for the pure lambda calculus using a cbv evaluation strategy. It compiles to a triple-style pseudo-assembly, which you can easily change to your favorite actual assembly language. The registers I use are:
+> 
+> * sp -- the stack pointer; points to the topmost occupied element of the stack. The stack grows upwards, so incrementing it yields a new slot.
+> * hp -- the heap pointer; points to the next free pointer. Allocation consists of bumping the heap pointer. You aren't getting deallocation in 100 LOC. :-)
+> * ep -- the environment register. Hold a pointer to the current environment for lexical variables.
+> * ret -- the return pointer. Where the current function should return to.
+> * work -- a scratch register
+> * newenv -- where we store the environment of a function we're about to call
+> * calltgt -- where we store the address of a function we're about to jump to
+> 
+> The compiler is insanely junky, but hey, it's ninety lines of code. There are exactly two interesting things it does. First, it does closure conversion, and uses `expr` to represent regular asts and `cexpr` for closure converted expressions. Second, it uses a perhaps excessively-slick bit of higher order functional programming to do relocation and backpatching in a purely functional way. Basically, a relocatable piece of code is a function that takes in its start address, and returns a pair consisting of the length of the generated code, and another function which actually produces the code once you give it a table of offsets for the closure addresses.
+> Some of the junky things I do is put too much code into the call sequence, rather than into the closure body. Another junky thing is that stack manipulation is incredibly lazy and naive; you could clean it up, shrink the generated code, and probably get rid of a couple of registers. Also, variable references are linear time, since I scan a linked list to find them.
+> 
+>     type 'a exp =
+>       | Var of string
+>       | App of 'a exp * 'a exp
+>       | Lam of string * 'a 
+> 
+>     type expr = E of expr exp
+>     type cexpr = C of int 
+> 
+>     let rec lambda_lift e env table =
+>       match e with
+>       | Var v -> Var v, table
+>       | App(e1, e2) ->
+>           let e1', table = lambda_lift e1 env table in
+>           let e2', table = lambda_lift e2 env table in
+>           App(e1', e2'), table
+>       | Lam(x, E ebody) ->
+>           let ebody', table = lambda_lift ebody (x :: env) table in
+>           Lam(x, C(List.length table)), (table @ [x :: env, ebody'])
+> 
+>     let rec index x = function
+>       | [] -> raise Not_found
+>       | y :: ys -> if x = y then 0 else 1 + (index x ys)
+> 
+>     let rec natfold n f init = if n = 0 then init else f (natfold (n-1) f init)
+> 
+>     (* compile : (string list * cexpr) -> int -> int * (int list -> string list) *)
+> 
+>     let rec compile' (env, e) start =  
+>       match e with
+>       | Var x ->
+>           let n = index x env in
+>           (n + 3,
+>            (fun _ -> 
+>               ["work := ep\n"] @
+>               (natfold n (fun acc -> "work := [work] + 1\n" :: acc) []) @
+>               ["sp := sp + 1\n";
+>                "[sp] := [work]\n"]))
+>       | Lam(x, C id) ->
+>           (5,
+>            fun locs ->
+>              ["sp := sp + 1\n";
+>               "[sp] := hp\n";
+>               "hp := hp + 2\n";
+>               Printf.sprintf "[sp] := %d\n" (List.nth locs id);
+>               "[[sp] + 1] := ep\n"])
+>       | App(e1, e2) ->
+>           let len1, f1 = compile' (env, e1) start in
+>           let len2, f2 = compile' (env, e2) (start + len1) in
+>           (len1 + len2 + 21,
+>            fun locs -> 
+>              let code1 = f1 locs in
+>              let code2 = f2 locs in
+>              (code1 @ code2 @
+>               ["work := hp\n";
+>                "hp := hp + 2\n";
+>                "[work] := [sp]\n";
+>                "[[work] + 1] := ep\n";
+>                "sp := sp - 1\n";
+>                "newenv := [[sp]]\n";
+>                "calltgt := [[sp] + 1]\n";
+>                "sp := sp - 1\n";
+>                "[sp] := ep\n";
+>                "sp := sp + 1\n";
+>                "[sp] := ret\n";
+>                "sp := sp + 1\n";
+>                "ep := newenv\n";
+>                Printf.sprintf "ret := %d\n" (start + len1 + len2 + 16);
+>                "jump calltgt\n";
+>                "work := [sp]\n";
+>                "sp := sp - 1\n";
+>                "ret := [sp]\n";
+>                "sp := sp - 1\n";
+>                "ep := [sp]\n";
+>                "sp := sp - 1\n"]))
+> 
+>     let rec compile_closures table start =
+>       match table with
+>       | [] -> ([], [])
+>       | pair :: tail ->
+>           let (len, code) = compile pair start in
+>           let code lst = code lst @ ["jump ret\n"] in
+>           let len = len + 1 in
+>           let (offsets, codes) = compile_closures tail (start + len) in
+>           (start :: offsets, code :: codes)
+> 
+>     let compile e env =
+>       let ce, table = lambda_lift e env [] in
+>       let (start, codegen) = compile' (env, ce) 0 in
+>       let start = start + 1 in
+>       let codegen = (fun offsets -> codegen offsets @ ["halt\n"]) in
+>       let (offsets, closuregens) = compile_closures table start in
+>       codegen offsets @ (List.concat (List.map (fun f -> f offsets) closuregens))
