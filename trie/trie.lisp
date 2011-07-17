@@ -1,4 +1,4 @@
-;;; © 1994–2003 Darius Bacon.  No copyright license.
+;;; By Darius Bacon; public domain.
 
 (define (assoc:test =? x a-list)   (cond ((null? a-list) #f)
                                          ((=? x (caar a-list)) (car a-list))
