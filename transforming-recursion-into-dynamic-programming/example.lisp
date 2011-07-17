@@ -10,8 +10,7 @@
                             (loop for j from i below n
                                sum (A j)))))))
 
-;;; I think this needs a (0) at the end of the first line?
-(defun-recurrence fib (n)
+(defun-recurrence fib (n) (0)
   (if (< n 2)
       n
       (+ (fib (- n 1))
