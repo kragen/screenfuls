@@ -504,3 +504,42 @@ Some things from [the demo scene][] and size-coding compos?  Maybe
 some other graphics hacks?
 
 [the demo scene]: http://canonical.org/~kragen/demo/ "Also check out pouet.net, dude"
+
+[RSA][]-in-four-lines-of-whatever?  Andrew Kuchling's 1995 Python
+version should be deobfuscatable:
+
+    #!/usr/local/bin/python -- -export-a-crypto-system-sig -RSA-in-4-lines-Python
+    from sys import*;from string import*;a=argv;[s,p,q]=filter(lambda x:x[:1]!=
+    '-',a);d='-d'in a;e,n=atol(p,16),atol(q,16);l=(len(q)+1)/2;o,inb=l-d,l-1+d
+    while s:s=stdin.read(inb);s and map(stdout.write,map(lambda i,b=pow(reduce(
+    lambda x,y:(x<<8L)+y,map(ord,s)),e,n):chr(b>>8*i&255),range(o-1,-1,-1)))
+
+[RSA]: http://www.cypherspace.org/rsa/
+
+My [binary relation query
+language](http://canonical.org/~kragen/binary-relations.html)?  The
+Prolog implementation of an evaluator is
+
+    :- multifile rel/3.  % because there are relational facts to add later
+    rel(compose(S, R), C, B) :- rel(S, C, A), rel(R, A, B).
+    rel(converse(R), B, A) :- rel(R, A, B).
+    rel(intersect(R, S), B, A) :- rel(R, B, A), rel(S, B, A).
+    rel(product([]), _, []).
+    rel(product([R|Rs]), B, [RB|RsB]) :- 
+        rel(R, B, RB), rel(product(Rs), B, RsB).
+
+    rel(sum, [A, B], C) :- var(A), not(var(B)), not(var(C)), A is C - B.
+    rel(sum, [A, B], C) :- not(var(A)), var(B), not(var(C)), B is C - A.
+    rel(sum, [A, B], C) :- not(var(A)), not(var(B)), var(C), C is A + B.
+    rel(sum, [A, B], C) :- not(var(A)), not(var(B)), not(var(C)), C is A + B.
+    rel(=<, A, B) :- A =< B.
+    rel(N, _, N) :- number(N).
+    rel(i, X, X).
+    rel(first, [A, _], A).
+    rel(second, [_, B], B).
+
+and presumably you could write an expression parser for the query
+language as a DCG of even fewer lines.
+
+Earlier versions of Blosxom, with comments removed?  0+5i is 144
+lines, which is just 12 lines over the threshold.
