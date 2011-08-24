@@ -544,9 +544,10 @@ language as a DCG of even fewer lines.
 Earlier versions of Blosxom, with comments removed?  0+5i is 144
 lines, which is just 12 lines over the threshold.
 
-Strachey's [checkers player][] in CPL. He writes that he hadn't tried
-to run it and it probably still had bugs. At the link it appears as a
-hard-to-read JPEG image.
+Strachey's [checkers player][] in CPL. Peter Norvig [got it running][]
+and critiqued it.
 
 [checkers player]:
 http://www.scientificamerican.com/article.cfm?id=system-analysis-and-programming-christopher-strachey&page=2
+
+[got it running]: http://norvig.com/sciam/sciam.html
